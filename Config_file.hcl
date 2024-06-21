@@ -1,6 +1,12 @@
 ### We can design the config file on our requirement bases. 
 ## For every requirement refer the documentation and add the lines in config file 
 ## Here are the few config models, 
+------------------------------------------------------------
+Start a server with a configuration file.
+$ vault server -config=/etc/vault/config.hcl
+
+Start in "dev" mode with a custom initial root token. 
+$ vault server -dev -dev-root-token-id="root"
 
 -------------------------------------------------------------
 Config_Sample_file-1: (Using the AWS KMS for seal and unseal)
