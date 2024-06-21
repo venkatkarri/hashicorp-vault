@@ -1,0 +1,22 @@
+
+sudo apt update && sudo apt install gpg wget
+wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg 
+gpg --no-default-keyring --keyring /usr/share/keyrings/hashicorp-archive-keyring.gpg --fingerprint 
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list 
+sudo apt update && sudo apt install vault 
+
+### Vault works on 2-modes i.e, Dev mode and Production mode. 
+$ vault server -dev 
+$ vault server -config="/path/location/for/config-file.hcl"
+
+Default Port: 8200
+Default storage mode: InMemory 
+Default mode: Seal 
+
+To check the status of vault 
+$ vault status 
+
+We need to export the vault address and token details initially to login to the vault.    
+$ export VAULT_ADDR="......address......"
+$ export VAULT_TOKEN="......key....." 
+
