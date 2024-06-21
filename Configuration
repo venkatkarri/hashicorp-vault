@@ -20,3 +20,19 @@ We need to export the vault address and token details initially to login to the 
 $ export VAULT_ADDR="......address......"
 $ export VAULT_TOKEN="......key....." 
 
+To start the vault server in back-ground, 
+$ nohup vault server -config="./vault_config.hcl" > $LOG_FILE 2>&1 & 
+
+To unseal, 
+$ vault operator unseal 
+
+To Seal, 
+$ vault operator seal 
+
+To regenerate the keys again, 
+$ vault operator init -recovery-shares=5 -recovery-threshold=3
+
+To check the logged in user details, 
+$ vault token lookup 
+
+
