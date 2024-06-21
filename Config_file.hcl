@@ -3,7 +3,7 @@
 ## Here are the few config models, 
 
 -------------------------------------------------------------
-Config_Model_file-1: 
+Config_Sample_file-1: (Using the AWS KMS for seal and unseal)
 --------------------
 ui = true
   storage "file" {
@@ -29,9 +29,37 @@ seal "awskms" {                  // This is one of the way to Auto-Unseal the va
 }
 
 
----------------------------------------------------------------
+----------------------------------------------------------------------------------------
+Config_Sample_file-2:  ( To Auto-Unseal the vault by using vaults default method)
+---------------------
+
+storage "file"
+{
+    path = "/tmp/data"
+}
+ backend "consul"
+{
+    address = "127.0.0.1:8500"
+    path = "vault"
+}
+listener "tcp"
+{
+    address = "127.0.0.1:8200"
+    tls_disable = 1
+}
+
+hsm "pkcs11"             // This is one of the way to Auto-Unseal the vault by using vaults default method 
+{
+    lib = "/opt/hashi/64/hsm/safenet/8.3.2/libIngPKCS11.so"
+    slot = "1"
+    pin = "KSUserName:KSUserPassword"
+    key_label = "vaulttek"
+    mechanism = "0x1087" #for CKM_AES_CBC, use “0x1082”
+    generate_key = "false"
+}
+
+
+---------------------------------------------------------------------------------------------
 
 
 
-
-  
