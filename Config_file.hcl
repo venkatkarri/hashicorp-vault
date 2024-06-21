@@ -60,6 +60,24 @@ hsm "pkcs11"             // This is one of the way to Auto-Unseal the vault by u
 
 
 ---------------------------------------------------------------------------------------------
+Sample_file-3: (simple file with basic structure) 
+--------------
+storage "file" { 
+        path = "/home/ubuntu/vault/vault_data" 
+        node_id = "node1" 
+} 
 
+listener "tcp" { 
+address = "0.0.0.0:8200"
+tls_disable = "true"
+} 
+
+ui = true 
+api_addr = "http://0.0.0.0:8200"
+disable_mlock = true 
+log_level = "TRACE"
+cluster_addr = "http://0.0.0.0:8201"
+
+----------------------------------------------------------------------------------------
 
 
