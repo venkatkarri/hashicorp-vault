@@ -1,0 +1,49 @@
+### We have many vault commands based on the use cases. 
+
+Start a server with a configuration file.
+$ vault server -config=/etc/vault/config.hcl
+
+Start in "dev" mode with a custom initial root token. 
+$ vault server -dev -dev-root-token-id="root"
+
+-----------------------------------------------------
+
+To check the status of vault 
+$ vault status 
+
+To login to vault 
+$ Vault login -address="http://172.25.34.98:8200" <token>           
+
+
+-----------------------------------------------------
+Enable secret engine for KV                                // We have multiple secret engines and each secret engine acts as plugin in vault.   
+$ vault secrets enable -path=path/location/my-path kv 
+
+To list all the available secret engines   
+$ vault secrets list  
+
+To get the details of the secret engine 
+$ vault read secret mysecret_engine_name
+
+To update the created secret_engine config details
+$ vault write mysecret_engine_name/config max_versions=5 
+
+To Disable the created secret_engine 
+$ vault secret disable <mysecret_engine_name> 
+
+To Move from existing secrets engine to a new path.     // The command can move within or across namespaces, using namespace prefixes in the arguments.
+vault secrets move ns1/secret/ ns2/kv/  
+
+To tune/update the configuration options for the secrets engine at the given PATH. 
+$ vault tune -description="defining any statement" -default-lease-ttl=18h -anyother_aruguments <mysecret_engine_name> 
+
+Write the secrets key values 
+$ vault kv put path/location/my-path key1=value1 
+
+Read the secrets for KV 
+$ vault kv get path/location/my-path 
+
+Delete the secrets for KV 
+$ vault kv delete path/location/my-path 
+
+
