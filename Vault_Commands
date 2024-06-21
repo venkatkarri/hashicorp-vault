@@ -14,6 +14,14 @@ $ vault status
 To login to vault 
 $ Vault login -address="http://172.25.34.98:8200" <token>           
 
+To unseal the vault 
+$ vault operator unseal <keys>
+
+To seal the unsealed vault
+$ vault operator unseal 
+
+To check the logged in user details
+$ vault token lookup 
 
 -----------------------------------------------------
 Enable secret engine for KV                                // We have multiple secret engines and each secret engine acts as plugin in vault.   
@@ -37,13 +45,82 @@ vault secrets move ns1/secret/ ns2/kv/
 To tune/update the configuration options for the secrets engine at the given PATH. 
 $ vault tune -description="defining any statement" -default-lease-ttl=18h -anyother_aruguments <mysecret_engine_name> 
 
-Write the secrets key values 
-$ vault kv put path/location/my-path key1=value1 
+-----------------------------------------------------------
+
+Token Usage: ( To get the token details like, which user, type, what permissions and more )
+$ vault token <subcommand> 
+$ vault token create -policy=my-policy -policy=other-policy -role=myrole -period=30m 
+$ vault token lookup 96ddf4bc-d217-f3ba-f9bd-017055595017               // Get information about a particular token 
+$ vault token renew 96ddf4bc-d217-f3ba-f9bd-017055595017                // Renew a token
+$  vault token revoke 96ddf4bc-d217-f3ba-f9bd-017055595017             // Revoke a token and all the token's children 
+
+Subcommands:
+    capabilities    Print capabilities of a token on a path
+    create          Create a new token
+    lookup          Display information about a token
+    renew           Renew a token lease
+    revoke          Revoke a token and its children
+
+
+-----------------------------------------------------------
+Key/Value secrets engine:
+
+Create or update the key named credntials 
+$ vault kv put mysecret-engin/mycred-path key1=value1 
+(or)
+$ vault kv put -mount=mysecret creds passcode=my-long-passcode 
+$ vault kv put -mount=mysecret-engin-name mypath-name key1=value1
 
 Read the secrets for KV 
 $ vault kv get path/location/my-path 
+$ vault kv get -mount=secret creds 
+$ vault kv metadata get -mount=secret creds        // To get metadata for the key named "creds"
+$ vault kv get -mount=secret -version=1 creds      // To get a specific version of the key named "creds"
 
 Delete the secrets for KV 
 $ vault kv delete path/location/my-path 
+$ vault kv delete -mount=secret-name -versions=11 creds 
+
+To undelete the data of deleted version 
+$ vault kv undelete -mount=secret -versions=3 creds 
+
+To permanently removes the specified versions' data from the key/value secrets engine. 
+$ vault kv destroy -mount=secret-name -versions=11 creds 
+
+To Rollback\restores to a previous version secrets at the given path.
+$ vault kv rollback -mount=secret-name -version=2 creds 
+
+To turn-on versioning for an existing key/value secrets engine.
+$ vault kv enable-versioning secret 
+
+To turn-off versioning 
+$ vault kv disable-versioning secret 
+
+To list of key names at the specified location. 
+vault kv list -mount=secret my-app/ 
+Keys
+----
+admin_creds
+eng_creds
+qa_creds
+
+To add additional data 
+$ vault kv patch -mount=secret creds ttl=48h      // If you wish to add an additional key-value (ttl=48h) to the existing data at the key "creds". 
+
+
+
+
+
+-----------------------------------------------------------
+
+
+
+
+
+
+-----------------------------------------------------------
+
+
+
 
 
