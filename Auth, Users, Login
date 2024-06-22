@@ -119,6 +119,49 @@ $ vault write auth/approle/role/jenkins token_policies="jenkins" \
 After the number of uses is reached, the SecretID expires and you would need to generate a new one. This is similar to forcing a password rotation.) 
 
 
+----------------------------------------------------------------------------------------
+AWS Auth method: 
+---------------- 
+Refer link-1: https://developer.hashicorp.com/vault/docs/auth/aws 
+
+There are two authentication types present in the aws auth method: IAM and EC2. 
+Each has a different authentication workflow, and each can solve different use cases. 
+But the IAM method is the recommended approach as it is more flexible and aligns with best practices to perform access control and authentication.
+
+The iam auth method authenticates AWS IAM principals. This can include IAM users, IAM roles assumed from other accounts. 
+
+Enable AWS EC2 authentication in Vault. 
+$ vault auth enable aws 
+
+To provide IAM security credentials to Vault, we recommend using Vault plugin workload identity federation (WIF). 
+$ vault write auth/aws/config/client \
+    secret_key=vCtSM8ZUEQ3mOFVlYPBQkf2sO6F/W7a5TVzrl3Oj \
+    access_key=VKIAJBRHKH6EVTTNXDHA
+
+$ vault auth/aws/config/client \
+    identity_token_audience="vault.example/v1/identity/oidc/plugins" \
+    role_arn="arn:aws:iam::123456789123:role/example-web-identity-role"
+
+
+Configure the policies on the role.
+vault write auth/aws/role/dev-role auth_type=ec2 bound_ami_id=ami-fce3c696 policies=prod,dev max_ttl=500h
+vault write auth/aws/role/dev-role-iam auth_type=iam \ 
+		bound_iam_principal_arn=arn:aws:iam::123456789012:role/MyRole policies=prod,dev max_ttl=500h 
+
+Configure a required X-Vault-AWS-IAM-Server-ID header (recommended) 
+$ vault write auth/aws/config/client iam_server_id_header_value=vault.example.com 
+
+Perform the login operation, 
+For the iam auth method, generating the signed request is a non-standard operation. The Vault cli supports generating this for you. 
+$ vault login -method=aws header_value=vault.example.com role=dev-role-iam 
+
+$ vault login -method=aws header_value=vault.example.com role=dev-role-iam \
+        aws_access_key_id=<access_key> \
+        aws_secret_access_key=<secret_key> \
+        aws_security_token=<security_token> \ 
+		region=us-west-2 
+
+
 
 ----------------------------------------------------------------------------------------
 
