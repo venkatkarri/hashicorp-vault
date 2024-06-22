@@ -123,6 +123,7 @@ After the number of uses is reached, the SecretID expires and you would need to 
 AWS Auth method: 
 ---------------- 
 Refer link-1: https://developer.hashicorp.com/vault/docs/auth/aws 
+Refer link-2: https://developer.hashicorp.com/vault/tutorials/auth-methods/agent-aws  
 
 There are two authentication types present in the aws auth method: IAM and EC2. 
 Each has a different authentication workflow, and each can solve different use cases. 
@@ -160,6 +161,41 @@ $ vault login -method=aws header_value=vault.example.com role=dev-role-iam \
         aws_secret_access_key=<secret_key> \
         aws_security_token=<security_token> \ 
 		region=us-west-2 
+
+
+
+----------------------------------------------------------------------------------------
+GitHub auth method:
+--------------------
+Refer link-1: https://developer.hashicorp.com/vault/docs/auth/github 
+
+The github auth method can be used to authenticate with Vault using a GitHub personal access token. 
+This method of authentication is most useful for humans: operators or developers using Vault directly via the CLI. 
+ 
+
+The default path is /github. If this auth method was enabled at a different path, specify -path=/my-path in the CLI. 
+$ vault login -method=github token="MY_TOKEN" 
+
+The default endpoint is auth/github/login. If this auth method was enabled at a different path, use that value instead of github. 
+$ curl \
+    --request POST \
+    --data '{"token": "MY_TOKEN"}' \
+    http://127.0.0.1:8200/v1/auth/github/login
+
+Configuration, 
+Enable the GitHub auth method. 
+$ vault auth enable github 
+
+Use the /config endpoint to configure Vault to talk to GitHub. 
+$ vault write auth/github/config organization=hashicorp
+
+Map the users/teams of that GitHub organization to policies in Vault. Team names must be "slugified". 
+$ vault write auth/github/map/teams/dev value=dev-policy 
+(In this example, when members of the team "dev" in the organization "hashicorp" authenticate to Vault using a GitHub personal access token, they will be given a token with the "dev-policy" policy attached.)
+
+You can also create mappings for a specific user map/users/<user> endpoint. 
+$ vault write auth/github/map/users/sethvargo value=sethvargo-policy 
+(In this example, a user with the GitHub username sethvargo will be assigned the sethvargo-policy policy in addition to any team policies.) 
 
 
 
