@@ -1,6 +1,14 @@
 -----------------------------------------------------------
 Auth methods:
 -------------
+Vault supports multiple auth methods including "GitHub, LDAP, AppRole, OKTA and more". Each auth method has a specific use case. 
+Before a client can interact with Vault, it must authenticate against an auth method. Upon authentication, a token is generated. This token is conceptually similar to a session ID on a website. 
+ 
+Auth methods are the components in Vault that perform authentication to users and also responsible for assigning identity and a set of policies to a user to restric access permissions. 
+
+External auth methods (e.g., Amazon Web Services, GitHub, Google Cloud Platform, Kubernetes, Microsoft Azure, Okta ...).
+For example: For a developer machines, the GitHub auth method is easiest to use. But for servers the AppRole method is the recommended choice. 
+
 Commands to interacting with Vault's auth methods.
 
 Enable an Userpass auth method. 
@@ -27,7 +35,93 @@ $ vault read sys/auth/github/tune
 Move the existing auth method at ns1/approle/ to ns2/new-approle/. 
 $ vault auth move ns1/auth/approle/ ns2/auth/new-approle/ 
 
+----------------------------------------------------------------------------------------  
+AppRole auth method: 
+--------------------
+Refer link-1: https://developer.hashicorp.com/vault/tutorials/auth-methods/approle 
+Refer link-2: https://developer.hashicorp.com/vault/tutorials/auth-methods/approle-best-practices 
+Refer link-3: https://www.hashicorp.com/blog/how-and-why-to-use-approle-correctly-in-hashicorp-vault?product_intent=vault 
+
+The approle auth method allows machines or apps to authenticate with Vault-defined roles.
+This auth method is oriented to automated workflows (machines and services), and is less useful for human operators. 
+An AppRole can be created for a particular machine, or even a particular user on that machine, or a service spread across machines. 
+
+The default path is /approle. If this auth method was enabled at a different path, specify auth/my-path/login instead. 
+The RoleID and SecretID are like a username and password that a machine or app uses to authenticate. 
+***To retrieve the RoleID, invoke the auth/approle/role/<ROLE_NAME>/role-id endpoint. To generate a new SecretID, invoke the auth/approle/role/<ROLE_NAME>/secret-id endpoint.
+***The acquired role-id and secret-id are the credentials that your trusted application uses to authenticate with Vault. 
+
+Enable the AppRole auth method:
+$ vault auth enable approle 
+
+Create a named app-role. 
+$ vault write auth/approle/role/jenkins token_policies="jenkins" token_ttl=1h token_max_ttl=4h 
+$ vault write auth/approle/role/my-role \
+    secret_id_ttl=10m \
+    token_num_uses=10 \
+    token_ttl=20m \
+    token_max_ttl=30m \
+    secret_id_num_uses=40
+
+
+Fetch the RoleID of the AppRole. (command to read the RoleID)
+$ vault read auth/approle/role/my-role/role-id 
+$ vault read auth/approle/role/jenkins/role-id 
+
+Get a SecretID issued against the AppRole. (command to generate a new SecretID)
+$ vault write -f auth/approle/role/my-role/secret-id 
+$ vault write -force auth/approle/role/jenkins/secret-id 
+
+The client (in this case, Jenkins) uses the RoleID and SecretID passed by the admin to authenticate with Vault. 
+To login, use the auth/approle/login endpoint by passing the RoleID and SecretID. 
+$ vault write auth/approle/login role_id="675a50e7-cfe0-be76-e35f-49ec009731ea" \
+    secret_id="ed0a642f-2acf-c2da-232f-1b21300d5f29"
+
+$ vault write auth/approle/login \
+    role_id=db02de05-fa39-4855-059b-67221c5c2f63 \
+    secret_id=6a174c20-f6de-a53c-74d2-6018fcceff64
+
+Vault returns a client token with default and jenkins policies attached. Store the generated token value in an environment variable named, APP_TOKEN.  
+Once receiving a token from Vault, the client can make future requests using this token. 
+$ export APP_TOKEN="s.ncEw5bAZJqvGJgl8pBDM0C5h" 
+
+Verify that you can access the secrets at secret/mysql/webapp.
+$ VAULT_TOKEN=$APP_TOKEN vault kv get secret/mysql/webapp 
+
+====== Metadata ======
+Key              Value
+---              -----
+created_time     2021-06-08T02:34:23.182299Z
+deletion_time    n/a
+destroyed        false
+version          1
+
+====== Data ======
+Key         Value
+---         -----
+db_name     users
+password    passw0rd
+username    admin
+
+SecretID is like a password. To keep the SecretID confidential, use response wrapping so that only the expecting client can unwrap the SecretID. 
+To use token wrapping by passing the -wrap-ttl parameter.
+$ vault write -wrap-ttl=60s -force auth/approle/role/jenkins/secret-id 
+Send this wrapping_token to the client so that the response can be unwrapped and obtain the SecretID. 
+$ VAULT_TOKEN="s.yzbznr9NlZNzsgEtz3SI56pX" vault unwrap 
+
+Limit the SecretID usages, Treat the SecretID like a password and force it to be regenerated after a number of use.
+To do so, update the role definition with "secret_id_num_uses" set. 
+$ vault write auth/approle/role/jenkins token_policies="jenkins" \
+     token_ttl=1h token_max_ttl=4h \
+     secret_id_num_uses=10
+
+(In this example, a SecretID of the jenkins role can be used for up to 10 times to authenticate and fetch a client token. 
+After the number of uses is reached, the SecretID expires and you would need to generate a new one. This is similar to forcing a password rotation.) 
+
+
+
 ----------------------------------------------------------------------------------------
+
 User Creation: 
 ---------------
 Create a user. 
