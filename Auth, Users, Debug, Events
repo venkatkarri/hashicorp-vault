@@ -1,0 +1,56 @@
+-----------------------------------------------------------
+Auth methods:
+-------------
+Commands to interacting with Vault's auth methods.
+
+Enable an Userpass auth method. 
+$ vault auth enable userpass 
+
+Disable the auth method enabled at "userpass/". 
+$ vault auth disable userpass/ 
+
+List all auth methods.
+$ vault auth list 
+$ vault auth list -detailed 
+
+Get help about how to authenticate to a particular auth method. 
+$ vault auth help userpass/ 
+
+Tune an auth method 
+$ vault auth tune -max-lease-ttl=30m userpass/ 
+$ vault auth tune -default-lease-ttl=72h github/ 
+
+Before tuning the auth method configuration, view the current configuration of the auth method enabled at "github/". 
+$ vault read sys/auth/userpass/tune 
+$ vault read sys/auth/github/tune 
+
+Move the existing auth method at ns1/approle/ to ns2/new-approle/. 
+$ vault auth move ns1/auth/approle/ ns2/auth/new-approle/ 
+
+----------------------------------------------------------------------------------------
+User Creation: 
+---------------
+Create a user. 
+$ vault write auth/userpass/users/sethvargo password=secret 
+
+-----------------------------------------------------------------------------------------
+Login:
+-------
+By default, login uses a "token" method and reads from stdin. 
+To login
+$ vault login 
+
+To login with a different method, use -method. 
+$ vault login -method=userpass username=my-username             //  Notice that the command option (-method=userpass) precedes the command argument (username=my-username). 
+$ vault login -method userpass username="mitchellh" password="\@foo"
+
+If a github auth method was enabled at the path "github-prod". 
+$ vault login -method=github -path=github-prod 
+
+
+
+
+
+
+
+
