@@ -1,0 +1,40 @@
+
+Create new namespace:
+Log into the root namespace via the Vault UI (root token)
+
+Make sure you are in the root name space
+
+Click on Access > Namespaces >create a namespace >
+
+Create secrets engine and secret in the new namespace:
+While still logged in the Vault UI as root, to switch to the newly created namespace
+
+Click on the three dots next to your new namespace > switch to namespace
+
+Click on Secrets > Enable new engine > KV > > and write a secret
+
+Create a namespace-admin policy in the new namespace:
+Click on Policies > Create ACL policy >
+
+Name: super-admin (or whatever)
+
+path "*" {
+capabilities = ["create", "read", "update", "delete", "list", "sudo"]
+}
+Create user in the new namespace, associated with this new policy:
+Switch to Vault cli
+
+export VAULT_ADDR=http://yourVaultAddress:8200
+
+export VAULT_TOKEN=<your root token>
+  
+export VAULT_NAMESPACE=<new namespace>
+
+vault auth enable userpass
+  
+vault write auth/userpass/users/<username> password=<password> policies=<super-admin>
+Validate this new user can perform any actions inside the new namespace:
+Log out of the Vaut UI as root and back in via username option and the newly created username/password
+
+Attempt to read secret created in previous step from KV
+
