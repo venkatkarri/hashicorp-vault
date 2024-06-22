@@ -1,6 +1,10 @@
 -----------------------------------------------------------
 Auth methods:
 -------------
+Refer link-1: https://developer.hashicorp.com/vault/tutorials/auth-methods 
+
+-------------
+
 Vault supports multiple auth methods including "GitHub, LDAP, AppRole, OKTA and more". Each auth method has a specific use case. 
 Before a client can interact with Vault, it must authenticate against an auth method. Upon authentication, a token is generated. This token is conceptually similar to a session ID on a website. 
  
