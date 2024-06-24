@@ -98,6 +98,15 @@ Challanges faced:
 
 2. Audiences validation failure - For this remove the audience in vault auth configuration. 
 
+----------------
+Reference Links, (for toubleshooting): 
+----
+a. https://discuss.hashicorp.com/t/vault-secrets-operator-with-external-vault-cluster-403-permission-denied/53055/6 
+b. https://discuss.hashicorp.com/t/vault-secrets-operator-permissions-denied-on-vault-login/60001 
+c. https://support.hashicorp.com/hc/en-us/articles/4404389946387-Kubernetes-auth-method-Permission-Denied-error 
+d. https://medium.com/@yurysavenko/using-vault-secrets-operator-in-kubernetes-afba5ccf44f1
+
+------------------
 
 ------------------------------------------------------------------------------------------------------------- 
 #############################################################################################################
