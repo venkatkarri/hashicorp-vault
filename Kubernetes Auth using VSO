@@ -8,7 +8,10 @@ c. https://support.hashicorp.com/hc/en-us/articles/4404389946387-Kubernetes-auth
 d. https://medium.com/@yurysavenko/using-vault-secrets-operator-in-kubernetes-afba5ccf44f1
 e. https://github.com/shabbirsaifee92/vso-demo 
 f. https://developer.hashicorp.com/vault/tutorials/kubernetes/vault-secrets-operator
+
 ------------------
+Hashicorp Repo: 
+a. https://github.com/hashicorp/vault-secrets-operator/  
 
 -----------------------------------------------------------------------------------------
 To install the Vault in kube cluster using Helm: 
