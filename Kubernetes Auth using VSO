@@ -11,14 +11,8 @@ $ vault secrets enable -path=kube-secrt kv
 $ vault read sys/mounts/kube-secrt 
 $ vault kv put kube-secrt/first/secrets1 user1=siddu password1=12345 user2=praveen password2=789654 
  
---------------
-To create policy here is a sample formate,  
-
-Policy: 
- path "kube-secrt/first/secrets1" { 
-   capabilities = ["read"]
- }
 ------------------------------------------------------------------------------------------------------------
+Integrating Vault and Kube-Cluster: 
 
 1. Configure the Kube cluster and get the required details of cluster. 
 2. Configure the Vault and create the Secret Engine and Auth with kubernetes. 
@@ -91,6 +85,18 @@ Policy:
 13. To check the available authenticators and secrets handlers in kube-cluster. 
 kubectl get crds 
 kubectl describe vaultconnections.secrets.hashicorp.com 
+
+
+
+-----------------------------------------------------------------------------------------------------------
+Challanges faced: 
+................. 
+1. Permission Denied: 
+      a. Caused due to not providing the service account JWT TOKEN. 
+      b. Service account not having the proper roles. We provided permission to serviceaccount with the ClusterRole binding. 
+      c. Not adding the ServiceAccount names in the Roles mapped to Vault Auth. 
+
+2. Audiences validation failure - For this remove the audience in vault auth configuration. 
 
 
 ------------------------------------------------------------------------------------------------------------- 
@@ -185,6 +191,16 @@ subjects:
 
 ###########################################################################################################
 ------------------------------------------------------------------------------------------------------------
+
+--------------
+To create policy here is a sample formate,  
+
+Policy: 
+ path "kube-secrt/first/secrets1" { 
+   capabilities = ["read"]
+ } 
+--------------
+
 
 $ vault write auth/new-kube/config kubernetes_host="https://E533E22A8FCC764C1BD518E3489C9EB4.gr7.eu-north-1.eks.amazonaws.com" 
 
