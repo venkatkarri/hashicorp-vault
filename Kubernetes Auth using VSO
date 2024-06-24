@@ -34,6 +34,7 @@ Policy:
     $ KUBE_CA_CERT=$(kubectl config view --raw --minify --flatten -o jsonpath='{.clusters[].cluster.certificate-authority-data}' | base64 --decode) 
     $ KUBE_HOST=$(kubectl config view --raw --minify --flatten --output='jsonpath={.clusters[].cluster.server}') 
     $ TOKEN_REVIEW_JWT=$(kubectl get secret vault-auth -o go-template='{{ .data.token }}' | base64 --decode) 
+(Note: Create the auth ServiceAccount with the ClusterRoleBinding mapping to "kind: ClusterRole" "name: system:auth-delegator") 
 
 5. To check above created auth details 
     $ vault auth list     (List all auth's created.)
@@ -44,7 +45,7 @@ Policy:
       ....................
       path "kube-secrt/first/secrets1" { 
          capabilities = ["read"]
-       } 
+       }   
       path "app1-kv/app1-secrets/*" { 
           capabilities = ["read", "create"]
       }
@@ -55,15 +56,41 @@ Policy:
         bound_service_account_namespaces=testapp \
         policies=default,kube-policy1 \
         ttl=24h 
-8. Create other new NameSpace and ServiceAccount in new namespace and generate the Token for this ServiceAccount. 
-     $ SATOKEN_REVIEW_SJWT1=$(kubectl get secret test-vault -n vso -o go-template='{{ .data.token }}' | base64 --decode)  
-9. Install and configure the Vault Secrets Operator (VSO) in kube-cluster with new Namespace using HELM. 
+8. Install and configure the Vault Secrets Operator (VSO) in kube-cluster with new Namespace using HELM. 
     $ helm repo add hashicorp https://helm.releases.hashicorp.com 
     $ helm repo update 
-    $ helm install vault-secrets-operator hashicorp/vault-secrets-operator --version 0.3.1 -n vault-secrets-operator-system --create-namespace --values vault/vault-operator-values.yaml 
+    $ helm install vault-secrets-operator hashicorp/vault-secrets-operator -n vault-secrets-operator-system --create-namespace --values vault/vault-operator-values.yaml  
+(For the VSO Repo, "git clone https://github.com/hashicorp-education/learn-vault-secrets-operator.git" ) 
 (Note: To configure the VSO, refer the below provided manifests samples.) 
 
+9. Create VaultAuth & VaultStaticSecret using the below sample manifests. 
+   $ kubectl apply -f vault-auth.yaml 
+   $ kubectl describe vaultauth.secrets.hashicorp.com/static-auth -n newvso-ns 
+(Note: Verify the above custome Auth services are created successfully without any errors by using kubectl describe commands.)
+(Once the Auth services are created successfully proceed with the next steps.) 
 
+10. Create other new NameSpace and ServiceAccount in new namespace and generate the Token for this ServiceAccount. 
+     $ kubectl apply -f app-Namespace.yaml 
+     $ kubectl apply -f app-serviceaccount.yaml 
+     $ SATOKEN_REVIEW_SJWT1=$(kubectl get secret test-vault -n newvso-ns -o go-template='{{ .data.token }}' | base64 --decode)  
+
+11. Now test the connectivity to Vault server using the above TOKEN. 
+     $ curl \
+       --request POST \
+       --data '{"jwt": "'$SATOKEN_REVIEW_SJWT1'", "role": "testapp"}' \
+       http://51.20.73.12:8200/v1/auth/kubernetes/login 
+(Once the above command executes successfully, then we are done with the setup.)
+
+12. Create VaultAuth & VaultStaticSecret using the below sample manifests. 
+   $ kubectl apply -f kv-secret.yaml
+   $ kubectl describe vaultstaticsecret.secrets.hashicorp.com/vault-static-secret-mysecret -n newvso-ns 
+(Note: Verify the above custome Secret services are created successfully without any errors by using kubectl describe commands.)
+(Once the Secret services are created successfully, we are ready to use secrets.) 
+(It needs to automatically create the secrets in kubernetes cluster. Please verify the same.) 
+
+13. To check the available authenticators and secrets handlers in kube-cluster. 
+kubectl get crds 
+kubectl describe vaultconnections.secrets.hashicorp.com 
 
 
 ------------------------------------------------------------------------------------------------------------- 
@@ -84,7 +111,6 @@ spec:
     audiences:
       - vault
 ------------------------------------------ 
-
 $ cat kv-secret.yaml 
 ---
 apiVersion: secrets.hashicorp.com/v1beta1
@@ -105,12 +131,60 @@ spec:
   - kind: Deployment
     name: fakeapp
 
+-----------------------------------------------------
+cat app-serviceaccount.yaml 
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: test-vault
+  namespace: vso
+---
+apiVersion: v1
+kind: Secret
+metadata:
+ name: test-vault
+ namespace: vso
+ annotations:
+   kubernetes.io/service-account.name: test-vault
+type: kubernetes.io/service-account-token
+
+----------------------------------------------------------
+cat auth-serviceaccount.yaml 
+----
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: vault-auth
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: vault-auth
+  annotations:
+    kubernetes.io/service-account.name: vault-auth
+type: kubernetes.io/service-account-token
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: role-tokenreview-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+  - kind: ServiceAccount
+    name: vault-auth
+    namespace: default
+  - kind: ServiceAccount
+    name: test-cloud
+    namespace: test
+
+
 
 ###########################################################################################################
 ------------------------------------------------------------------------------------------------------------
-
-
-
 
 $ vault write auth/new-kube/config kubernetes_host="https://E533E22A8FCC764C1BD518E3489C9EB4.gr7.eu-north-1.eks.amazonaws.com" 
 
