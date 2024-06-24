@@ -1,3 +1,12 @@
+------------------------------------------------------------------------------------------------------------------------------------
+...............
+Reference link, (Vault installtion): 
+https://developer.hashicorp.com/vault/tutorials/getting-started/getting-started-install 
+https://www.youtube.com/watch?v=r-9JOfWm1NI&list=PLyjwSz9fDYVULMrKxuPu-5CcKtuMLMcTe&index=2 
+https://phoenixnap.com/kb/how-to-install-vault-ubuntu 
+https://www.digitalocean.com/community/tutorials/how-to-securely-manage-secrets-with-hashicorp-vault-on-ubuntu-20-04 
+
+...............
 
 sudo apt update && sudo apt install gpg wget
 wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg 
