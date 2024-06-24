@@ -105,6 +105,7 @@ a. https://discuss.hashicorp.com/t/vault-secrets-operator-with-external-vault-cl
 b. https://discuss.hashicorp.com/t/vault-secrets-operator-permissions-denied-on-vault-login/60001 
 c. https://support.hashicorp.com/hc/en-us/articles/4404389946387-Kubernetes-auth-method-Permission-Denied-error 
 d. https://medium.com/@yurysavenko/using-vault-secrets-operator-in-kubernetes-afba5ccf44f1
+e. https://github.com/shabbirsaifee92/vso-demo 
 
 ------------------
 
