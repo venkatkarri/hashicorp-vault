@@ -1,0 +1,373 @@
+
+-----------------------------------------------------------------------------------------
+To install the Vault in kube cluster using Helm: 
+
+helm repo add hashicorp https://helm.releases.hashicorp.com 
+helm install vault hashicorp/vault -n vault --create-namespace --set server.dev.enable=true 
+
+Exec into vault pod, to enter into vault pod shell.  
+Run below commands, 
+$ vault secrets enable -path=kube-secrt kv 
+$ vault read sys/mounts/kube-secrt 
+$ vault kv put kube-secrt/first/secrets1 user1=siddu password1=12345 user2=praveen password2=789654 
+ 
+--------------
+To create policy here is a sample formate,  
+
+Policy: 
+ path "kube-secrt/first/secrets1" { 
+   capabilities = ["read"]
+ }
+------------------------------------------------------------------------------------------------------------
+
+1. Configure the Kube cluster and get the required details of cluster. 
+2. Configure the Vault and create the Secret Engine and Auth with kubernetes. 
+    $ vault secrets enable -path=kube-secrt kv 
+    $ vault auth enable -path demo-auth-mount kubernetes 
+
+3. Configure the kubernetes Auth with required detils like "Cluster EndPoint, CA-certificate, JWT-ServiceAccount-Token, ServiceAccount". 
+    $ vault write auth/demo-auth-mount/config \
+         kubernetes_host="https://$KUBERNETES_PORT_443_TCP_ADDR:443" 
+(From console, Access --> kubernetesName --> configuration.)
+
+4. To fetch the required kubernetes cluster details like "CA-Cert, Host-EndPoint, ServiceAccount-Token-JWT".
+    $ KUBE_CA_CERT=$(kubectl config view --raw --minify --flatten -o jsonpath='{.clusters[].cluster.certificate-authority-data}' | base64 --decode) 
+    $ KUBE_HOST=$(kubectl config view --raw --minify --flatten --output='jsonpath={.clusters[].cluster.server}') 
+    $ TOKEN_REVIEW_JWT=$(kubectl get secret vault-auth -o go-template='{{ .data.token }}' | base64 --decode) 
+
+5. To check above created auth details 
+    $ vault auth list     (List all auth's created.)
+    $ vault read auth/kubernetes/config      (To view details of auth configuration.)
+    $ vault read auth/kubernetes/role/testapp    (To view details of auth roles.) 
+
+6. Create the Policy with the limited permissions to Secret-Engine paths. 
+      ....................
+      path "kube-secrt/first/secrets1" { 
+         capabilities = ["read"]
+       } 
+      path "app1-kv/app1-secrets/*" { 
+          capabilities = ["read", "create"]
+      }
+      ......................
+7. Create the Roles in Kubernetes auth and provide all the required details like "ServiceAccounts, Namespaces, Policies". (Do not provide "Audience" it is throughing error.)
+    $ vault write auth/kubernetes/role/testapp \
+        bound_service_account_names=default \
+        bound_service_account_namespaces=testapp \
+        policies=default,kube-policy1 \
+        ttl=24h 
+8. Create other new NameSpace and ServiceAccount in new namespace and generate the Token for this ServiceAccount. 
+     $ SATOKEN_REVIEW_SJWT1=$(kubectl get secret test-vault -n vso -o go-template='{{ .data.token }}' | base64 --decode)  
+9. Install and configure the Vault Secrets Operator (VSO) in kube-cluster with new Namespace using HELM. 
+    $ helm repo add hashicorp https://helm.releases.hashicorp.com 
+    $ helm repo update 
+    $ helm install vault-secrets-operator hashicorp/vault-secrets-operator --version 0.3.1 -n vault-secrets-operator-system --create-namespace --values vault/vault-operator-values.yaml 
+(Note: To configure the VSO, refer the below provided manifests samples.) 
+
+
+
+
+------------------------------------------------------------------------------------------------------------- 
+#############################################################################################################
+$ cat vault-auth.yaml
+---
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultAuth
+metadata:
+  name: static-auth
+  namespace: vso
+spec:
+  method: kubernetes
+  mount: kubernetes
+  kubernetes:
+    role: testapp
+    serviceAccount: default
+    audiences:
+      - vault
+------------------------------------------ 
+
+$ cat kv-secret.yaml 
+---
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultStaticSecret
+metadata:
+  namespace: vso
+  name: vault-static-secret-mysecret
+spec:
+  vaultAuthRef: static-auth
+  mount: kube-secrt
+  type: kv-v1
+  path: first/secrets1
+  refreshAfter: 10s
+  destination:
+    create: true
+    name: secret1
+  rolloutRestartTargets:
+  - kind: Deployment
+    name: fakeapp
+
+
+###########################################################################################################
+------------------------------------------------------------------------------------------------------------
+
+
+
+
+$ vault write auth/new-kube/config kubernetes_host="https://E533E22A8FCC764C1BD518E3489C9EB4.gr7.eu-north-1.eks.amazonaws.com" 
+
+------------------
+To get the CA cert from the cluster config, 
+1. Try below command,  
+$ kubectl config view --raw -o jsonpath='{.clusters[?(@.name=="<cluster-name>")].cluster.certificate-authority-data}' | base64 --decode > ca.crt 
+(if above command don't work try below steps)
+
+1. Run the command to fetch cluster configuration details including authority certificate.  
+$ kubectl config view --raw 
+2. Copy the authority certificate 
+3. Decode the kube authority certificate with base64. 
+$ export KEY1=<..authority-certificate..> 
+$ echo $KUBE_CERT1    // to verify 
+$ echo $KUBE_CERT1 | base64 --decode (or) $ echo $KUBE_CERT1 | base64 --decode > ca.crt 
+
+It generates the CA Cert key and use it. 
+
+-------------------------
+
+$ vault write auth/kubernetes/role/testapp \
+bound_service_account_names=default \
+bound_service_account_namespaces=testapp \
+policies=default,kube-policy1 \
+audience=vault \ 
+ttl=24h 
+--------------------------------------------------------
+
+curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 
+chmod 700 get_helm.sh 
+./get_helm.sh 
+apt-get update 
+
+helm repo add hashicorp https://helm.releases.hashicorp.com 
+helm repo update 
+
+helm install vault-secrets-operator hashicorp/vault-secrets-operator --version 0.3.1 -n vault-secrets-operator-system --create-namespace --values vault/vault-operator-values.yaml 
+helm install vault-secrets-operator hashicorp/vault-secrets-operator --version 0.3.1 -n vault-secrets-operator-system --create-namespace --values vault/vault-operator-values.yaml 
+
+kube-secrt/first/secrets1 
+
+kubectl get crds 
+kubectl describe vaultconnections.secrets.hashicorp.com 
+
+-----------------------------------------------------------
+
+vault auth enable -path demo-auth-mount kubernetes
+
+vault write auth/demo-auth-mount/config \
+   kubernetes_host="https://$KUBERNETES_PORT_443_TCP_ADDR:443"
+   
+
+vault secrets enable -path=kvv2 kv-v2
+
+vault write auth/demo-auth-mount/role/role1 \
+   bound_service_account_names=default \
+   bound_service_account_namespaces=app \
+   policies=dev \
+   audience=vault \
+   ttl=24h
+   
+
+vault kv put kvv2/webapp/config username="static-user" password="static-password" 
+  
+  -----
+vault policy write dev - <<EOF
+path "kvv2/*" {
+   capabilities = ["read"]
+}
+EOF 
+   
+   -----
+---------------------------------------
+
+root@kubernetes:~/learn-vault-secrets-operator/vault# cat vault-auth-static.yaml 
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultAuth
+metadata:
+  name: static-auth
+  namespace: app
+spec:
+  method: kubernetes
+  mount: demo-auth-mount
+  kubernetes:
+    role: role1
+    serviceAccount: default
+    audiences:
+      - vault
+--------------------------------------
+
+root@kubernetes:~/learn-vault-secrets-operator/vault# cat static-secret.yaml 
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultStaticSecret
+metadata:
+  name: vault-kv-app
+  namespace: app
+spec:
+  type: kv-v2
+
+  # mount path
+  mount: kvv2
+
+  # path of the secret
+  path: webapp/config
+
+  # dest k8s secret
+  destination:
+    name: secretkv
+    create: true
+
+  # static secret refresh interval
+  refreshAfter: 30s
+
+  # Name of the CRD to authenticate to Vault
+  vaultAuthRef: static-auth
+---------------------------------------------
+
+root@kubernetes:~/learn-vault-secrets-operator/vault# kubectl describe vaultstaticsecret.secrets.hashicorp.com/vault-kv-
+app -n app
+Name:         vault-kv-app
+Namespace:    app
+Labels:       <none>
+Annotations:  <none>
+API Version:  secrets.hashicorp.com/v1beta1
+Kind:         VaultStaticSecret
+Metadata:
+  Creation Timestamp:  2024-06-22T16:54:58Z
+  Generation:          1
+  Resource Version:    1519
+  UID:                 8788c031-4080-4c24-86f1-01782af9fee3
+Spec:
+  Destination:
+    Create:          true
+    Name:            secretkv
+  Hmac Secret Data:  true
+  Mount:             kvv2
+  Path:              webapp/config
+  Refresh After:     30s
+  Type:              kv-v2
+  Vault Auth Ref:    static-auth
+Status:
+  Secret MAC:  QakGWT+0PHn+ghyWxoPzKwvD6DURMg9ByJJVphBO6rI=
+Events:
+  Type    Reason        Age                 From               Message
+  ----    ------        ----                ----               -------
+  Normal  SecretSynced  2m41s               VaultStaticSecret  Secret synced
+  Normal  SecretSync    7s (x6 over 2m15s)  VaultStaticSecret  Secret sync not required
+root@kubernetes:~/learn-vault-secrets-operator/vault# 
+
+-----------------------------------------------------------
+
+root@kubernetes:~/learn-vault-secrets-operator/vault# kubectl describe vaultauth.secrets.hashicorp.com/static-auth -n ap
+p
+Name:         static-auth
+Namespace:    app
+Labels:       <none>
+Annotations:  <none>
+API Version:  secrets.hashicorp.com/v1beta1
+Kind:         VaultAuth
+Metadata:
+  Creation Timestamp:  2024-06-22T16:53:16Z
+  Finalizers:
+    vaultauth.secrets.hashicorp.com/finalizer
+  Generation:        1
+  Resource Version:  1433
+  UID:               5d326d62-222e-4ce0-a279-508107f4b1f7
+Spec:
+  Kubernetes:
+    Audiences:
+      vault
+    Role:                      role1
+    Service Account:           default
+    Token Expiration Seconds:  600
+  Method:                      kubernetes
+  Mount:                       demo-auth-mount
+Status:
+  Error:  
+  Valid:  true
+Events:
+  Type    Reason    Age    From       Message
+  ----    ------    ----   ----       -------
+  Normal  Accepted  6m57s  VaultAuth  Successfully handled VaultAuth resource request
+root@kubernetes:~/learn-vault-secrets-operator/vault# 
+
+----------------------------------------------------------------
+
+kubectl create ns app 
+kubectl apply -f vault/vault-auth-static.yaml
+kubectl apply -f vault/static-secret.yaml 
+
+-------------------------------------------------------------
+
+Rotate the Static Secret
+Click in the content area of the k9s tab so it takes focus.
+If not already displayed, list the namespaces by typing :ns.
+Use the up and down arrows to choose the app namespace and press enter.
+This area is blank, so type in :secrets and hit enter.
+Now the secrets named secretkv is displayed, highlight it.
+Display the secret by pressing the x key.
+In the Vault CLI tab, rotate the secret.
+
+$ vault kv put kvv2/webapp/config username="static-user2" password="static-password2" 
+
+Return to k9s terminal, and escape back to the secret page and hit x again to display the updated secret. You might need to wait for as much as a minute before the secret changes.
+The secret has changed, and the value of version is 2.
+-------------------------------------------------------------
+
+helm repo add bitnami https://charts.bitnami.com/bitnami 
+
+vault secrets enable -path=demo-db database
+
+vault write demo-db/config/demo-db \
+   plugin_name=postgresql-database-plugin \
+   allowed_roles="dev-postgres" \
+   connection_url="postgresql://{{username}}:{{password}}@postgres-postgresql.postgres.svc.cluster.local:5432/postgres?sslmode=disable" \
+   username="postgres" \
+   password="secret-pass" 
+   
+   
+vault write demo-db/roles/dev-postgres \
+   db_name=demo-db \
+   creation_statements="CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}'; \
+      GRANT ALL PRIVILEGES ON DATABASE postgres TO \"{{name}}\";" \
+   backend=demo-db \
+   name=dev-postgres \
+   default_ttl="1m" \
+   max_ttl="1m"
+   
+   
+vault policy write demo-auth-policy-db - <<EOF
+path "demo-db/creds/dev-postgres" {
+   capabilities = ["read"]
+}
+EOF
+
+
+
+  ---------------------------------------------------------------------
+  
+  curl \
+>     --request POST \
+>     --data '{"jwt": "'$TOKEN_REVIEW_SJWT'", "role": "devweb-app"}' \
+>     http://127.0.0.1:8200/v1/auth/kubernetes/login
+
+
+curl \
+     --request POST \
+     --data '{"jwt": "'$TOKEN_REVIEW_SJWT1'", "role": "testapp"}' \
+     http://51.20.73.12:8200/v1/auth/kubernetes/login
+
+
+
+TOKEN_REVIEW_SJWT=$(kubectl get secret test-vault -n vso -o go-template='{{ .data.token }}' | base64 --decode)
+
+-------------------------------------------------------------------
+
+
+
+
