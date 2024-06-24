@@ -12,6 +12,9 @@ f. https://developer.hashicorp.com/vault/tutorials/kubernetes/vault-secrets-oper
 
 -----------------------------------------------------------------------------------------
 To install the Vault in kube cluster using Helm: 
+--------
+Reference link, (for VSO installation): https://developer.hashicorp.com/vault/docs/platform/k8s/vso/installation 
+--------
 
 helm repo add hashicorp https://helm.releases.hashicorp.com 
 helm install vault hashicorp/vault -n vault --create-namespace --set server.dev.enable=true 
